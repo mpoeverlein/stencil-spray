@@ -80,12 +80,6 @@ h1 span {
         0 4px 12px rgba(0, 0, 0, 0.35),
         0 0 0 1px rgba(255, 255, 255, 0.1);
 }
-.postcard-wrapper.dragging-stencil {
-    cursor: grab;
-}
-.postcard-wrapper.dragging-stencil:active {
-    cursor: grabbing;
-}
 
 .canvas-stack {
     position: relative;

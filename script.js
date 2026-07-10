@@ -316,14 +316,6 @@
             stencilIndicator.classList.add('none');
         }
         updateThumbnailActiveState();
-        updateWrapperCursor();
-    }
-
-    function updateWrapperCursor() {
-        wrapper.classList.remove('dragging-stencil');
-        if (activeStencilIndex >= 0 && !isSpraying) {
-            // Could be dragging — show appropriate cursor based on hover
-        }
     }
 
     // ──────────────────────────────────────
@@ -424,7 +416,6 @@
         isSpraying = true;
         lastSprayTime = 0;
         sprayFrameId = requestAnimationFrame(sprayLoop);
-        wrapper.classList.add('dragging-stencil');
     }
 
     function stopSpraying() {
@@ -433,7 +424,6 @@
             cancelAnimationFrame(sprayFrameId);
             sprayFrameId = null;
         }
-        updateWrapperCursor();
     }
 
     function sprayLoop(timestamp) {
@@ -526,45 +516,27 @@
     }
 
     function handlePointerDown(e) {
-        if (e.button !== undefined && e.button !== 0) return; // Only left mouse button
+        if (e.button !== undefined && e.button !== 0) return;
         const pos = getEventPos(e);
         updateLastMouseEvent(e);
 
-        // Check if clicking on opaque part of active stencil → drag stencil
-        if (activeStencilIndex >= 0 && isOnOpaqueStencil(pos.x, pos.y) && isWithinStencilBounds(pos.x, pos
-                .y)) {
-            isDraggingStencil = true;
-            dragStartMouseX = pos.x;
-            dragStartMouseY = pos.y;
-            dragStartOffsetX = stencilOffsetX;
-            dragStartOffsetY = stencilOffsetY;
-            wrapper.classList.add('dragging-stencil');
+        // If clicking on opaque part of active stencil → ignore completely
+        if (activeStencilIndex >= 0 && isOnOpaqueStencil(pos.x, pos.y) && isWithinStencilBounds(pos.x, pos.y)) {
             e.preventDefault();
             return;
         }
 
         // Otherwise, start spraying
-        saveCanvasStateSnapshot(); // Save state for undo
-        isDraggingStencil = false;
+        saveCanvasStateSnapshot();
         lastMouseEvent = { x: pos.x, y: pos.y };
         startSpraying();
-        sprayBurst(pos.x, pos.y); // Immediate burst
+        sprayBurst(pos.x, pos.y);
         e.preventDefault();
     }
 
     function handlePointerMove(e) {
         const pos = getEventPos(e);
         updateLastMouseEvent(e);
-
-        if (isDraggingStencil) {
-            const dx = pos.x - dragStartMouseX;
-            const dy = pos.y - dragStartMouseY;
-            stencilOffsetX = dragStartOffsetX + dx;
-            stencilOffsetY = dragStartOffsetY + dy;
-            updateOverlay();
-            e.preventDefault();
-            return;
-        }
 
         if (isSpraying) {
             lastMouseEvent = { x: pos.x, y: pos.y };
@@ -573,15 +545,9 @@
     }
 
     function handlePointerUp(e) {
-        if (isDraggingStencil) {
-            isDraggingStencil = false;
-            updateOverlay();
-            updateWrapperCursor();
-        }
         if (isSpraying) {
             stopSpraying();
         }
-        isDraggingStencil = false;
     }
 
     function handleTouchStart(e) {
@@ -733,26 +699,6 @@
         if (e.ctrlKey && e.key === 'z') {
             e.preventDefault();
             restoreCanvasStateSnapshot();
-        }
-        // Arrow keys to nudge stencil
-        if (activeStencilIndex >= 0 && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-            e.preventDefault();
-            const step = e.shiftKey ? 20 : 5;
-            switch (e.key) {
-                case 'ArrowUp':
-                    stencilOffsetY -= step;
-                    break;
-                case 'ArrowDown':
-                    stencilOffsetY += step;
-                    break;
-                case 'ArrowLeft':
-                    stencilOffsetX -= step;
-                    break;
-                case 'ArrowRight':
-                    stencilOffsetX += step;
-                    break;
-            }
-            updateOverlay();
         }
     });
 
