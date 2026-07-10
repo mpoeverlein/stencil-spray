@@ -1,0 +1,447 @@
+:root {
+    --bg: #1e1e2e;
+    --surface: #2a2a3c;
+    --surface2: #333350;
+    --text: #e0e0e0;
+    --text-secondary: #b0b0c0;
+    --accent: #ff6b9d;
+    --accent2: #4ec9f0;
+    --danger: #ff6b6b;
+    --radius: 12px;
+    --transition: 0.2s ease;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: var(--bg);
+    font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    padding: 20px;
+}
+
+.app-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    max-width: 1100px;
+    width: 100%;
+}
+
+h1 {
+    color: var(--text);
+    font-weight: 700;
+    font-size: 1.8rem;
+    letter-spacing: -0.02em;
+    text-align: center;
+    margin-bottom: -4px;
+}
+h1 span {
+    color: var(--accent);
+}
+
+.main-row {
+    display: flex;
+    gap: 24px;
+    align-items: stretch;
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+/* Postcard area */
+.postcard-wrapper {
+    position: relative;
+    flex-shrink: 0;
+    border-radius: var(--radius);
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.45),
+        0 2px 8px rgba(0, 0, 0, 0.3),
+        0 0 0 1px rgba(255, 255, 255, 0.06);
+    overflow: hidden;
+    cursor: crosshair;
+    background: #fff;
+    transition: box-shadow var(--transition);
+}
+.postcard-wrapper:hover {
+    box-shadow:
+        0 12px 40px rgba(0, 0, 0, 0.55),
+        0 4px 12px rgba(0, 0, 0, 0.35),
+        0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+.postcard-wrapper.dragging-stencil {
+    cursor: grab;
+}
+.postcard-wrapper.dragging-stencil:active {
+    cursor: grabbing;
+}
+
+.canvas-stack {
+    position: relative;
+    width: 600px;
+    height: 400px;
+}
+
+canvas {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 600px;
+    height: 400px;
+}
+#postcard-canvas {
+    z-index: 1;
+    background: #fefefe;
+    /* subtle paper texture via noise-like gradient */;
+}
+#stencil-overlay {
+    z-index: 2;
+    pointer-events: none;
+    /* events handled by wrapper */;
+}
+
+/* Stencil panel */
+.stencil-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 18px 16px;
+    min-width: 170px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.stencil-panel h3 {
+    color: var(--text);
+    font-size: 0.95rem;
+    text-align: center;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    opacity: 0.8;
+    margin-bottom: 2px;
+}
+.stencil-slot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+.stencil-thumb {
+    width: 120px;
+    height: 80px;
+    border-radius: 6px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    object-fit: contain;
+    background: #1a1a2a;
+    transition: all var(--transition);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    image-rendering: auto;
+}
+.stencil-thumb:hover {
+    border-color: var(--accent2);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+.stencil-thumb.active {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px rgba(255, 107, 157, 0.25);
+    animation: pulse-active 2s ease-in-out infinite;
+}
+@keyframes pulse-active {
+    0%,
+    100% {
+        box-shadow: 0 0 0 4px rgba(255, 107, 157, 0.25);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(255, 107, 157, 0.08);
+    }
+}
+.stencil-label {
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    letter-spacing: 0.02em;
+}
+.stencil-slot input[type="file"] {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    max-width: 130px;
+    cursor: pointer;
+}
+.stencil-slot input[type="file"]::file-selector-button {
+    background: var(--surface2);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--text);
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.7rem;
+    transition: background var(--transition);
+}
+.stencil-slot input[type="file"]::file-selector-button:hover {
+    background: #444468;
+}
+
+.btn-remove-stencil {
+    background: var(--surface2);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--text);
+    padding: 8px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.82rem;
+    letter-spacing: 0.02em;
+    transition: all var(--transition);
+    width: 100%;
+    text-align: center;
+}
+.btn-remove-stencil:hover {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: #fff;
+}
+.btn-remove-stencil:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    background: var(--surface2);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary);
+}
+
+/* Controls */
+.controls-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 16px 22px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    justify-content: center;
+}
+.control-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.control-group label {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+.control-group input[type="color"] {
+    -webkit-appearance: none;
+    width: 40px;
+    height: 34px;
+    border: 2px solid rgba(255, 255, 255, 0.25);
+    border-radius: 6px;
+    cursor: pointer;
+    background: transparent;
+    padding: 2px;
+    transition: border-color var(--transition);
+}
+.control-group input[type="color"]:hover {
+    border-color: var(--accent2);
+}
+.control-group input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+.control-group input[type="color"]::-webkit-color-swatch {
+    border-radius: 3px;
+    border: none;
+}
+.control-group input[type="range"] {
+    -webkit-appearance: none;
+    width: 100px;
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.15);
+    outline: none;
+    cursor: pointer;
+}
+.control-group input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--accent2);
+    cursor: pointer;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    transition: transform var(--transition);
+}
+.control-group input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+}
+.radius-value {
+    color: var(--text);
+    font-size: 0.8rem;
+    font-weight: 600;
+    min-width: 32px;
+    text-align: center;
+}
+.opacity-value {
+    color: var(--text);
+    font-size: 0.8rem;
+    font-weight: 600;
+    min-width: 28px;
+    text-align: center;
+}
+
+/* Starry sky toggle */
+.toggle-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 16px;
+    border-radius: 24px;
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    background: var(--surface2);
+    color: var(--text-secondary);
+    transition: all var(--transition);
+    white-space: nowrap;
+    user-select: none;
+}
+.toggle-btn:hover {
+    border-color: rgba(255, 255, 255, 0.4);
+    color: var(--text);
+}
+.toggle-btn.active {
+    background: #2a1a3a;
+    border-color: #c084fc;
+    color: #e2c6ff;
+    box-shadow: 0 0 20px rgba(192, 132, 252, 0.3);
+}
+.toggle-btn .star-icon {
+    font-size: 1.1rem;
+    transition: transform var(--transition);
+}
+.toggle-btn.active .star-icon {
+    transform: rotate(20deg) scale(1.2);
+    animation: twinkle 1.5s ease-in-out infinite;
+}
+@keyframes twinkle {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.btn-action {
+    padding: 9px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: var(--surface2);
+    color: var(--text);
+    transition: all var(--transition);
+    white-space: nowrap;
+}
+.btn-action:hover {
+    background: #444468;
+    border-color: rgba(255, 255, 255, 0.4);
+}
+.btn-action.danger {
+    border-color: rgba(255, 107, 107, 0.4);
+    color: #ffaaaa;
+}
+.btn-action.danger:hover {
+    background: #4a2020;
+    border-color: var(--danger);
+    color: #ffcaca;
+}
+.btn-action.undo {
+    border-color: rgba(255, 193, 107, 0.4);
+    color: #ffd6a0;
+}
+.btn-action.undo:hover {
+    background: #3a2a10;
+    border-color: #ffc16b;
+    color: #ffe0b0;
+}
+
+.active-stencil-indicator {
+    color: var(--accent);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    min-width: 100px;
+    text-align: center;
+    padding: 6px 12px;
+    background: rgba(255, 107, 157, 0.1);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 107, 157, 0.3);
+}
+.active-stencil-indicator.none {
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .canvas-stack {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 3/2;
+    }
+    .canvas-stack canvas {
+        width: 100%;
+        height: 100%;
+    }
+    .postcard-wrapper {
+        width: 100%;
+        max-width: 600px;
+    }
+    .main-row {
+        flex-direction: column;
+        align-items: center;
+    }
+    .stencil-panel {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        min-width: auto;
+        padding: 12px;
+        gap: 10px;
+    }
+    .stencil-thumb {
+        width: 80px;
+        height: 54px;
+    }
+    .controls-bar {
+        gap: 10px;
+        padding: 12px 14px;
+    }
+    .control-group input[type="range"] {
+        width: 70px;
+    }
+}
