@@ -620,6 +620,7 @@
     btnDownload.addEventListener('click', () => {
         // toDataURL works even with the stencil overlay on top —
         // we only export the main canvas (the painted postcard).
+        console.log('Download function');
         const dataURL = mainCanvas.toDataURL('image/png');
 
         const link = document.createElement('a');
