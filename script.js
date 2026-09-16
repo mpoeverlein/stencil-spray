@@ -17,6 +17,7 @@
     const btnUndo = document.getElementById('btn-undo');
     const btnClear = document.getElementById('btn-clear');
     const stencilIndicator = document.getElementById('stencil-indicator');
+    const btnDownload = document.getElementById('btn-download');
 
     const CANVAS_W = 600;
     const CANVAS_H = 400;
@@ -614,6 +615,19 @@
             mainCtx.strokeRect(2, 2, CANVAS_W - 4, CANVAS_H - 4);
             saveCanvasStateSnapshot();
         }
+    });
+
+    btnDownload.addEventListener('click', () => {
+        // toDataURL works even with the stencil overlay on top —
+        // we only export the main canvas (the painted postcard).
+        const dataURL = mainCanvas.toDataURL('image/png');
+
+        const link = document.createElement('a');
+        link.download = `postcard-${Date.now()}.png`;
+        link.href = dataURL;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     });
 
     toggleStarry.addEventListener('click', () => {
