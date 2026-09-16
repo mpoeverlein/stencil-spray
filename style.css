@@ -87,13 +87,23 @@ h1 span {
     height: 400px;
 }
 
-canvas {
+/* Only the postcard canvases are absolutely positioned and full size */
+#postcard-canvas,
+#stencil-overlay {
     display: block;
     position: absolute;
     top: 0;
     left: 0;
     width: 600px;
     height: 400px;
+}
+
+/* Thumbnail canvases behave like normal block elements */
+.stencil-thumb {
+    position: static;          /* override any absolute positioning */
+    width: 120px;
+    height: 80px;
+    /* rest of your .stencil-thumb styles already exist */
 }
 #postcard-canvas {
     z-index: 1;
@@ -108,43 +118,97 @@ canvas {
 
 /* Stencil panel */
 .stencil-panel {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    background: var(--surface);
-    border-radius: var(--radius);
-    padding: 18px 16px;
-    min-width: 170px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    position: fixed;           /* Position relative to the screen */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;      /* Let clicks pass through to the canvas */
+    z-index: 10;               /* Above everything */
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    display: block;
 }
 .stencil-panel h3 {
-    color: var(--text);
-    font-size: 0.95rem;
-    text-align: center;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-    opacity: 0.8;
-    margin-bottom: 2px;
+    display: none;
 }
+/* Each stencil slot positioned absolutely */
 .stencil-slot {
+    position: absolute;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 6px;
+    pointer-events: auto;
+    background: rgba(30, 30, 46, 0.85);
+    padding: 8px;
+    border-radius: 10px;
+    backdrop-filter: blur(4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    width: 140px;
 }
+
+.stencil-slot[data-index="0"] {
+    top: 10px;
+    left: 10px;
+}
+
+.stencil-slot[data-index="1"] {
+    top: 170px;
+    left: 10px;
+}
+
+.stencil-slot[data-index="2"] {
+    top: 330px;
+    left: 10px;
+}
+
 .stencil-thumb {
     width: 120px;
     height: 80px;
     border-radius: 6px;
     border: 2px solid transparent;
     cursor: pointer;
-    object-fit: contain;
     background: #1a1a2a;
     transition: all var(--transition);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    image-rendering: auto;
+    flex-shrink: 0;          /* never let it shrink or grow beyond 120x80 */
+    display: block;
 }
+
+
+
+
+.stencil-slot input[type="file"] {
+    font-size: 0.7rem;
+    color: #ffffff;
+    width: 100%;
+    cursor: pointer;
+    display: block;
+    text-align: center;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.stencil-slot input[type="file"]::file-selector-button {
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #fff;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.7rem;
+    display: block;
+    margin: 0 auto;
+}
+
+.stencil-slot input[type="file"]::file-selector-button:hover {
+    background: rgba(0, 0, 0, 0.8);
+}
+
 .stencil-thumb:hover {
     border-color: var(--accent2);
     transform: translateY(-2px);
@@ -155,6 +219,25 @@ canvas {
     box-shadow: 0 0 0 4px rgba(255, 107, 157, 0.25);
     animation: pulse-active 2s ease-in-out infinite;
 }
+
+.stencil-upload {
+    font-size: 0.7rem;
+    color: #fff;
+    cursor: pointer;
+    width: 100%;
+    text-align: center;
+}
+
+.stencil-upload::file-selector-button {
+    background: rgba(0,0,0,0.6);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: #fff;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.7rem;
+}
+
 @keyframes pulse-active {
     0%,
     100% {
@@ -169,38 +252,14 @@ canvas {
     font-size: 0.78rem;
     letter-spacing: 0.02em;
 }
-.stencil-slot input[type="file"] {
-    font-size: 0.7rem;
-    color: var(--text-secondary);
-    max-width: 130px;
-    cursor: pointer;
-}
-.stencil-slot input[type="file"]::file-selector-button {
-    background: var(--surface2);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: var(--text);
-    padding: 4px 10px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.7rem;
-    transition: background var(--transition);
-}
-.stencil-slot input[type="file"]::file-selector-button:hover {
-    background: #444468;
-}
+
 
 .btn-remove-stencil {
-    background: var(--surface2);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: var(--text);
-    padding: 8px 14px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.82rem;
-    letter-spacing: 0.02em;
-    transition: all var(--transition);
-    width: 100%;
-    text-align: center;
+    position: fixed;
+    bottom: 20px;
+    left: 10px;
+    z-index: 10;
+    pointer-events: auto;
 }
 .btn-remove-stencil:hover {
     background: var(--danger);

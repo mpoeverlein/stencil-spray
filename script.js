@@ -87,29 +87,22 @@
         offCanvas.height = CANVAS_H;
         const ctx = offCanvas.getContext('2d');
 
-        // Fill with opaque dark material (this BLOCKS paint)
-        ctx.fillStyle = '#3a3a50';
+        ctx.fillStyle = '#3a3a50';   // opaque blocking colour
         ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-
-        // Cut out transparent areas (these LET paint through)
         ctx.globalCompositeOperation = 'destination-out';
 
         if (index === 0) {
-            // Three circular holes
+            // three circles
             const cy = CANVAS_H / 2;
-            const radii = [55, 70, 50];
-            const positions = [CANVAS_W * 0.2, CANVAS_W * 0.5, CANVAS_W * 0.78];
-            positions.forEach((cx, i) => {
+            [CANVAS_W * 0.2, CANVAS_W * 0.5, CANVAS_W * 0.78].forEach((cx, i) => {
                 ctx.beginPath();
-                ctx.arc(cx, cy, radii[i], 0, Math.PI * 2);
+                ctx.arc(cx, cy, [55, 70, 50][i], 0, Math.PI * 2);
                 ctx.fill();
             });
         } else if (index === 1) {
-            // Diagonal stripe cutouts
-            const stripeWidth = 28;
-            const spacing = 55;
-            const totalSpan = CANVAS_W + CANVAS_H;
-            for (let d = -CANVAS_H; d < totalSpan; d += spacing) {
+            // diagonal stripes
+            const stripeWidth = 28, spacing = 55;
+            for (let d = -CANVAS_H; d < CANVAS_W + CANVAS_H; d += spacing) {
                 ctx.beginPath();
                 ctx.moveTo(d, 0);
                 ctx.lineTo(d + stripeWidth, 0);
@@ -119,37 +112,53 @@
                 ctx.fill();
             }
         } else if (index === 2) {
-            // Star-shaped cutout in center
-            const cx = CANVAS_W / 2;
-            const cy = CANVAS_H / 2;
-            const outerR = 130;
-            const innerR = 55;
-            const points = 5;
+            // star + small hole
+            const cx = CANVAS_W / 2, cy = CANVAS_H / 2;
+            const outerR = 130, innerR = 55;
             ctx.beginPath();
-            for (let i = 0; i < points * 2; i++) {
+            for (let i = 0; i < 10; i++) {
                 const r = i % 2 === 0 ? outerR : innerR;
-                const angle = (i * Math.PI) / points - Math.PI / 2;
+                const angle = (i * Math.PI) / 5 - Math.PI / 2;
                 const x = cx + Math.cos(angle) * r;
                 const y = cy + Math.sin(angle) * r;
-                if (i === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
+                i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
             }
             ctx.closePath();
             ctx.fill();
-            // Add a smaller circle hole too
             ctx.beginPath();
             ctx.arc(cx, cy, 30, 0, Math.PI * 2);
             ctx.fill();
         }
-
         ctx.globalCompositeOperation = 'source-over';
+        return offCanvas;
+    }
 
-        // Convert to image
-        const dataUrl = offCanvas.toDataURL('image/png');
-        const img = new Image();
-        img.src = dataUrl;
+    // ──────────────────────────────────────
+    // Initialize stencils from PNG files
+    // ──────────────────────────────────────
+    const STENCIL_FILES = ['red_alpha.png', 'green_alpha.png', 'blue_alpha.png'];
 
-        return { img, offCanvas, dataUrl };
+    function loadStencilImages() {
+        return Promise.all(STENCIL_FILES.map((filename, index) => {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    setupStencilFromImage(index, img);
+                    updateThumbnail(index);
+                    updateThumbnailActiveState();
+                    resolve();
+                };
+                img.onerror = () => {
+                    console.warn(`Could not load stencil image: ${filename}`);
+                    // Fall back to a placeholder so the slot isn't empty
+                    const canvas = generatePlaceholderStencil(index);
+                    setupStencilFromCanvas(index, canvas);
+                    updateThumbnail(index);
+                    resolve();
+                };
+                img.src = filename;
+            });
+        }));
     }
 
     function setupStencilFromImage(index, img) {
@@ -169,11 +178,28 @@
         const imageData = offCtx.getImageData(0, 0, img.naturalWidth, img.naturalHeight);
         const alphaArr = new Uint8Array(img.naturalWidth * img.naturalHeight);
         for (let i = 0; i < alphaArr.length; i++) {
-            alphaArr[i] = imageData.data[i * 4 + 3]; // alpha channel
+            alphaArr[i] = imageData.data[i * 4 + 3];
         }
         stencilAlphaData[index] = alphaArr;
 
-        // Update thumbnail
+        updateThumbnail(index);
+    }
+
+    function setupStencilFromCanvas(index, canvas) {
+        console.log(index);
+        stencilImages[index] = canvas;
+        stencilNaturalWidth[index] = canvas.width;
+        stencilNaturalHeight[index] = canvas.height;
+        stencilOffscreenCanvases[index] = canvas;
+
+        const ctx = canvas.getContext('2d');
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const alphaArr = new Uint8Array(canvas.width * canvas.height);
+        for (let i = 0; i < alphaArr.length; i++) {
+            alphaArr[i] = imageData.data[i * 4 + 3];
+        }
+        stencilAlphaData[index] = alphaArr;
+
         updateThumbnail(index);
     }
 
@@ -194,13 +220,15 @@
         }
 
         if (stencilImages[index]) {
-            const img = stencilImages[index];
-            const scale = Math.min(thumbCanvas.width / img.naturalWidth, thumbCanvas.height / img.naturalHeight);
-            const dw = img.naturalWidth * scale;
-            const dh = img.naturalHeight * scale;
+            const source = stencilImages[index];
+            const srcWidth = source.naturalWidth || source.width;   // works for both Image and Canvas
+            const srcHeight = source.naturalHeight || source.height;
+            const scale = Math.min(thumbCanvas.width / srcWidth, thumbCanvas.height / srcHeight);
+            const dw = srcWidth * scale;
+            const dh = srcHeight * scale;
             const dx = (thumbCanvas.width - dw) / 2;
             const dy = (thumbCanvas.height - dh) / 2;
-            thumbCtx.drawImage(img, dx, dy, dw, dh);
+            thumbCtx.drawImage(source, dx, dy, dw, dh);
         }
     }
 
@@ -228,14 +256,8 @@
     // ──────────────────────────────────────
     function initPlaceholderStencils() {
         for (let i = 0; i < 3; i++) {
-            const { img } = generatePlaceholderStencil(i);
-            img.onload = () => {
-                setupStencilFromImage(i, img);
-            };
-            // If already loaded (data URL), setup immediately
-            if (img.complete && img.naturalWidth > 0) {
-                setupStencilFromImage(i, img);
-            }
+            const canvas = generatePlaceholderStencil(i);   // returns a canvas directly
+            setupStencilFromCanvas(i, canvas);              // synchronous, no onload
         }
     }
 
@@ -516,17 +538,14 @@
     }
 
     function handlePointerDown(e) {
-        if (e.button !== undefined && e.button !== 0) return;
+        if (e.button !== undefined && e.button !== 0) return; // only left button
         const pos = getEventPos(e);
         updateLastMouseEvent(e);
-
-        // If clicking on opaque part of active stencil → ignore completely
-        if (activeStencilIndex >= 0 && isOnOpaqueStencil(pos.x, pos.y) && isWithinStencilBounds(pos.x, pos.y)) {
-            e.preventDefault();
-            return;
-        }
-
-        // Otherwise, start spraying
+        console.log('down: activeStencilIndex =', activeStencilIndex,
+            'scale =', stencilScaleX, stencilScaleY,
+            'offset =', stencilOffsetX, stencilOffsetY,
+            'natural =', stencilNaturalWidth[activeStencilIndex], stencilNaturalHeight[activeStencilIndex]);
+        // Always start spraying – the stencil will still block the paint where it's opaque
         saveCanvasStateSnapshot();
         lastMouseEvent = { x: pos.x, y: pos.y };
         startSpraying();
@@ -707,8 +726,10 @@
     // ──────────────────────────────────────
     function init() {
         initPostcard();
-        initPlaceholderStencils();
-        updateAllThumbnails();
+        loadStencilImages().then(() => {
+            updateAllThumbnails();
+            updateUIState();
+        });
         updateUIState();
 
         // Give placeholder images a moment to load, then update thumbnails
