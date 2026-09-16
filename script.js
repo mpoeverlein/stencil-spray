@@ -140,24 +140,33 @@
 
     function loadStencilImages() {
         return Promise.all(STENCIL_FILES.map((filename, index) => {
-            return new Promise((resolve) => {
-                const img = new Image();
-                img.onload = () => {
-                    setupStencilFromImage(index, img);
-                    updateThumbnail(index);
-                    updateThumbnailActiveState();
-                    resolve();
-                };
-                img.onerror = () => {
-                    console.warn(`Could not load stencil image: ${filename}`);
-                    // Fall back to a placeholder so the slot isn't empty
+            return fetch(filename)
+                .then(res => {
+                    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+                    return res.blob();
+                })
+                .then(blob => new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        const img = new Image();
+                        img.onload = () => {
+                            setupStencilFromImage(index, img);
+                            updateThumbnail(index);
+                            updateThumbnailActiveState();
+                            resolve();
+                        };
+                        img.onerror = reject;
+                        img.src = reader.result; // data: URL — same-origin, no taint
+                    };
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                }))
+                .catch(err => {
+                    console.warn(`Could not load stencil ${filename}:`, err);
                     const canvas = generatePlaceholderStencil(index);
                     setupStencilFromCanvas(index, canvas);
                     updateThumbnail(index);
-                    resolve();
-                };
-                img.src = filename;
-            });
+                });
         }));
     }
 
